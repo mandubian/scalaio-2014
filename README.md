@@ -3,7 +3,7 @@
 
 - A freemonad/coproduct application sample using scalaz & shapeless
 
-- Based on a talk presented first by @runorama @scaladays 2014:
+- Based on ideas presented first by @runorama @scaladays 2014:
 
     * Slides : https://dl.dropboxusercontent.com/u/4588997/ReasonablyPriced.pdf
     * Code Sample : https://gist.github.com/runarorama/a8fab38e473fafa0921d
