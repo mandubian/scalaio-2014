@@ -1,8 +1,7 @@
-Scala 2014 Talk
-"20.000 leagues under the sea and Freemonads, Coproducts & pure functional DI"
-===============
+## Scala 2014 Talk
+### 20.000 leagues under the sea and Freemonads, Coproducts & pure functional DI
 
-- Describes an application sample based on scalaz & shapeless
+- Describes an freemonad/coproduct application sample using scalaz & shapeless
 
 - Based on a talk presented first by @runorama @scaladays 2014:
 
