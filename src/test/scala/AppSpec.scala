@@ -29,6 +29,7 @@ class AppSpec extends FlatSpec with Matchers with Instrumented {
     //////////////////////////////////////////////////////////////////////////
     // DB Interaction Application
     object DB {
+
       // DB ADT
       type Entity = Map[String, String]
 
@@ -224,6 +225,7 @@ class AppSpec extends FlatSpec with Matchers with Instrumented {
       }
     }
 
+    /** let's compose NatTrans to make it stacksafe */
     object Trampolined extends (Id ~> Trampoline) {
       def apply[A](a: Id[A]) = Trampoline.done(a)
     }

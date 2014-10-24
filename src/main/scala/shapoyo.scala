@@ -8,8 +8,46 @@ import scalaz.{Free, Coyoneda, Functor, Unapply, ~>, Monad}
 import Coyoneda.CoyonedaF
 
 
+/** FreeMonad[Coyoneda[Coproduct, ...]] helpers */
 object Shapoyo {
 
+  /** Lifts NatTrans to NatTrans of NatTrans of Coyoneda */
+  def liftCoyo[F[_], G[_]](fg: F ~> G): CoyonedaF[F]#A ~> CoyonedaF[G]#A =
+    new (Coyoneda.CoyonedaF[F]#A ~> Coyoneda.CoyonedaF[G]#A) {
+      def apply[A](c: Coyoneda[F, A]) = {
+        Coyoneda.apply(fg(c.fi))(c.k)
+      }
+    }
+
+  def liftCoyoLeft[F[_], G[_]: Functor](fg: F ~> G): CoyonedaF[F]#A ~> G = {
+    type CF[A] = Coyoneda[F, A]
+    type CG[A] = Coyoneda[G, A]
+
+    val m: (CF ~> CG) = liftCoyo(fg)
+
+    new (CF ~> G) {
+      def apply[A](c: CF[A]) = m(c).run
+    }
+  }
+
+  // Lifts a F ~> G into Free[F, _] ~> G running the free and using original NatTrans
+  def liftFree[F[_]: Functor, G[_]: Monad](fg: F ~> G): ({ type l[A] = Free[F, A] })#l ~> G = {
+    new (({ type l[A] = Free[F, A] })#l ~> G) {
+      def apply[A](free: Free[F, A]) = free.foldMap(fg)
+    }
+  }
+
+  /** Helper to inject a F[A] into Coproduct into Coyoneda into FreeMonad */
+  class Copoyo[C[_] <: Coproduct] {
+    def apply[F[_], A](fa: F[A])(implicit inj: Inject[C[A], F[A]]): Free.FreeC[C, A] =
+      Free.liftFC(Coproduct[C[A]](fa))
+  }
+
+  object Copoyo {
+    def apply[C[_] <: Coproduct] = new Copoyo[C]
+  }
+
+  /** Coproduct Natural Transformations */
   implicit class RichNatT[F[_], R[_]](val f: F ~> R) extends AnyVal {
 
     def ||:[G[_]](g: G ~> R) = {
@@ -68,6 +106,9 @@ object Shapoyo {
     }
   }
 
+
+
+  /** Coproduct Functors */
   implicit def CoproductFunctor1[F[_]](implicit F: Functor[F]) = 
     new Functor[({ type l[A] = F[A] :+: CNil })#l] {
 
@@ -102,66 +143,7 @@ object Shapoyo {
       }
 
     }
-
-  def liftCoyo[F[_], G[_]](fg: F ~> G): CoyonedaF[F]#A ~> CoyonedaF[G]#A =
-    new (Coyoneda.CoyonedaF[F]#A ~> Coyoneda.CoyonedaF[G]#A) {
-      def apply[A](c: Coyoneda[F, A]) = {
-        Coyoneda.apply(fg(c.fi))(c.k)
-      }
-    }
-
-  def liftCoyoLeft[F[_], G[_]: Functor](fg: F ~> G): CoyonedaF[F]#A ~> G = {
-    type CF[A] = Coyoneda[F, A]
-    type CG[A] = Coyoneda[G, A]
-
-    val m: (CF ~> CG) = liftCoyo(fg)
-
-    new (CF ~> G) {
-      def apply[A](c: CF[A]) = m(c).run
-    }
-  }
-
-  def liftFree[F[_]: Functor, G[_]: Monad](fg: F ~> G): ({ type l[A] = Free[F, A] })#l ~> G = {
-    new (({ type l[A] = Free[F, A] })#l ~> G) {
-      def apply[A](free: Free[F, A]) = free.foldMap(fg)
-    }
-  }
-
-  implicit def toScalazNat[F[_], G[_]](nat: F ~> G) = new scalaz.~>[F, G] {
-    def apply[T](ft: F[T]): G[T] = nat(ft)
-  }
-
-  def copoyo[C[_] <: Coproduct, F[_], A](fa: F[A])(implicit inj: Inject[C[A], F[A]]): Free.FreeC[C, A] =
-    Free.liftFC(Coproduct[C[A]](fa))
-
-  class Copoyo[C[_] <: Coproduct] {
-    def apply[F[_], A](fa: F[A])(implicit inj: Inject[C[A], F[A]]): Free.FreeC[C, A] =
-      Free.liftFC(Coproduct[C[A]](fa))
-  }
-
-  object Copoyo {
-    def apply[C[_] <: Coproduct] = new Copoyo[C]
-  }
-
-
-  trait SubCoproduct[Sub <: Coproduct, Super <: Coproduct] extends DepFn1[Sub] {
-    type Out = Super
-  }
-
-  object SubCoproduct {
-    implicit def single[H, T <: Coproduct, Super <: Coproduct](
-      implicit inj: Inject[Super, H], sub: SubCoproduct[T, Super]
-    ) = new SubCoproduct[H :+: T, Super] {
-
-      def apply(c: H :+: T) = c match {
-        case Inl(h) => inj(h)
-        case Inr(t) => sub(t)
-      }
-    }
-  }
-
 }
-
 
 
 
